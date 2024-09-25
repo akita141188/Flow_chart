@@ -8,28 +8,58 @@ import * as go from 'gojs';
 })
 export class DiagramComponent implements AfterViewInit {
   public diagram: go.Diagram | undefined;
+  public draggedItem: string | undefined;
   public copiedNodeData: any[] = [];
   ngAfterViewInit(): void {
     this.initDiagram();
-    // this.registerKeyBindings();
+    this.initDropListeners();
+    this.loadFromLocalStorage();
+    this.registerKeyBindings();
   }
+  loadFromLocalStorage() {}
 
   initDiagram() {
     const $ = go.GraphObject.make;
     this.diagram = $(go.Diagram, 'myDiagramDiv', {
-      'grid.visible': true, // Hiển thị lưới
-      'grid.gridCellSize': new go.Size(20, 20), // Kích thước ô lưới
-      'grid.background': 'whitesmoke', // Màu nền của lưới
-      draggingTool: new go.DraggingTool(), // Cho phép kéo và thả
-      allowSelect: true, // Cho phép lựa chọn
+      'undoManager.isEnabled': true,
+      'draggingTool.isEnabled': true,
+      allowDrop: true,
+      'grid.visible': true,
+      'grid.background': 'whitesmoke',
     });
 
     // Thiết lập lưới
-    this.diagram.grid = $(
+    //Grid nét liền
+    // this.diagram.grid = $(
+    //   go.Panel,
+    //   'Grid',
+    //   {
+    //     gridCellSize: new go.Size(25, 25), // Kích thước ô vuông là 100x100
+    //   },
+    //   $(go.Shape, 'LineH', { stroke: 'lightgray', strokeWidth: 0.1 }), // Đường ngang
+    //   $(go.Shape, 'LineV', { stroke: 'lightgray', strokeWidth: 0.1 }) // Đường dọc
+    // );
+
+    // tạo grid dấu chấm
+    const gridSize = 55;
+    this.diagram.grid = go.GraphObject.make(
       go.Panel,
       'Grid',
-      $(go.Shape, 'LineH', { stroke: 'lightgray', strokeWidth: 0.5 }), // Đường ngang
-      $(go.Shape, 'LineV', { stroke: 'lightgray', strokeWidth: 0.5 }) // Đường dọc
+      {
+        gridCellSize: new go.Size(gridSize, gridSize),
+      },
+      // Hàng ngang
+      go.GraphObject.make(go.Shape, 'LineH', {
+        stroke: 'lightgray',
+        strokeWidth: 0.5,
+        strokeDashArray: [1, 5], // Tạo hiệu ứng đứt quãng
+      }),
+      // Hàng dọc
+      go.GraphObject.make(go.Shape, 'LineV', {
+        stroke: 'lightgray',
+        strokeWidth: 0.5,
+        strokeDashArray: [1, 5], // Tạo hiệu ứng đứt quãng
+      })
     );
 
     // Thiết lập nodeTemplate với 2 chấm kết nối
@@ -73,7 +103,7 @@ export class DiagramComponent implements AfterViewInit {
           fill: 'blue',
           width: 10,
           height: 10,
-          toLinkable: true,
+          toLinkable: false,
           fromLinkable: true,
         })
       ),
@@ -125,54 +155,66 @@ export class DiagramComponent implements AfterViewInit {
         toSpot: go.Spot.Left,
         layerName: 'Foreground', // Đặt lên trên cùng để tránh bị chồng
       },
-      $(go.Shape, { stroke: 'black' }), // Đường nối
-      $(go.Shape, { toArrow: 'Standard', fill: 'black' }) // Mũi tên
+      $(go.Shape, { stroke: 'white', strokeWidth: 2 }), // Đường nối
+      $(go.Shape, { toArrow: 'Standard', fill: 'white' })
     );
 
-    this.diagram.model = $(go.GraphLinksModel, {
-      nodeDataArray: Array.from({ length: 1000 }, (v, i) => {
-        const colors = [
-          'lightblue',
-          'lightgreen',
-          'lightcoral',
-          'lightgoldenrodyellow',
-          'lightpink',
-        ];
-        const names = [
-          'Start',
-          'Beta',
-          'Gamma',
-          'Delta',
-          'Epsilon',
-          'Zeta',
-          'Eta',
-          'Theta',
-          'Iota',
-          'Kappa',
-          'Lambda',
-          'Mu',
-          'Nu',
-          'Xi',
-          'Omicron',
-          'Pi',
-          'Rho',
-          'Sigma',
-          'Tau',
-          'Upsilon',
-          'Phi',
-          'Chi',
-          'Psi',
-          'Omega',
-        ];
+    const modelData = JSON.parse(localStorage.getItem('diagramData') || 'null');
+    if (modelData) {
+      this.diagram.model = go.Model.fromJson(modelData);
+    } else {
+      // Nếu không có dữ liệu, khởi tạo mô hình mới
+      this.diagram.model = $(go.GraphLinksModel, {
+        nodeDataArray: Array.from({ length: 15 }, (v, i) => {
+          const colors = [
+            'lightblue',
+            'lightgreen',
+            'lightcoral',
+            'lightgoldenrodyellow',
+            'lightpink',
+          ];
+          const names = [
+            'Start',
+            'Beta',
+            'Gamma',
+            'Delta',
+            'Epsilon',
+            'Zeta',
+            'Eta',
+            'Theta',
+            'Iota',
+            'Kappa',
+            'Lambda',
+            'Mu',
+            'Nu',
+            'Xi',
+            'Omicron',
+            'Pi',
+            'Rho',
+            'Sigma',
+            'Tau',
+            'Upsilon',
+            'Phi',
+            'Chi',
+            'Psi',
+            'Omega',
+          ];
 
-        return {
-          key: i + 1, // Tạo key từ 1 đến 1000
-          text: names[i % names.length] + ` ${i + 1}`, // Tạo text dựa trên tên và chỉ số
-          color: colors[i % colors.length], // Chọn màu ngẫu nhiên từ mảng màu
-        };
-      }),
-      linkDataArray: [],
-    });
+          return {
+            key: i + 1,
+            text: names[i % names.length] + ` ${i + 1}`,
+            color: colors[i % colors.length],
+            loc: `0 ${i * 50}`,
+          };
+        }),
+        linkDataArray: [],
+      });
+    }
+    if (this.diagram) {
+      this.diagram.model.addChangedListener(() => {
+        localStorage.setItem('diagramData', this.diagram!.model.toJson());
+      });
+    }
   }
 
   sortDiagram() {
@@ -183,7 +225,7 @@ export class DiagramComponent implements AfterViewInit {
 
     const layout = new go.TreeLayout({
       sorting: go.TreeSorting.Ascending,
-      layerSpacing: 50, // Khoảng cách giữa các lớp
+      layerSpacing: 50,
       nodeSpacing: 20,
     });
 
@@ -192,35 +234,68 @@ export class DiagramComponent implements AfterViewInit {
   }
 
   // Phương thức để sao chép các nút đã chọn
-  // copySelectedNodes() {
-  //   if (!this.diagram) return;
+  copySelectedNodes() {
+    if (!this.diagram) return;
 
-  //   const selectedNodes = this.diagram.selection.toArray();
-  //   this.copiedNodeData = selectedNodes.map((node) => {
-  //     return this.diagram?.model.findNodeDataForKey(node.data.key) || {};
-  //   });
-  // }
+    const selectedNodes = this.diagram.selection.toArray();
+    this.copiedNodeData = selectedNodes.map((node) => {
+      return this.diagram?.model.findNodeDataForKey(node.data.key) || {};
+    });
+  }
 
-  // pasteCopiedNodes() {
-  //   if (!this.diagram || this.copiedNodeData.length === 0) return;
+  pasteCopiedNodes() {
+    if (!this.diagram || this.copiedNodeData.length === 0) return;
 
-  //   const newNodeDataArray = this.copiedNodeData.map((nodeData) => ({
-  //     ...nodeData,
-  //     key: this.diagram.model.nodeDataArray.length + 1,
-  //   }));
+    const newNodeDataArray = this.copiedNodeData.map((nodeData) => {
+      return {
+        ...nodeData,
+        key: Number(this.diagram?.model.nodeDataArray.length) + 1,
+      };
+    });
 
-  //   this.diagram.model.addNodeDataCollection(newNodeDataArray);
-  // }
+    this.diagram.model.addNodeDataCollection(newNodeDataArray);
+  }
 
-  // registerKeyBindings() {
-  //   document.addEventListener('keydown', (event) => {
-  //     if (event.ctrlKey && event.key === 'c') {
-  //       this.copySelectedNodes();
-  //       event.preventDefault();
-  //     } else if (event.ctrlKey && event.key === 'v') {
-  //       this.pasteCopiedNodes();
-  //       event.preventDefault();
-  //     }
-  //   });
-  // }
+  registerKeyBindings() {
+    document.addEventListener('keydown', (event) => {
+      if (event.ctrlKey && event.key === 'c') {
+        this.copySelectedNodes();
+        event.preventDefault();
+      } else if (event.ctrlKey && event.key === 'v') {
+        this.pasteCopiedNodes();
+        event.preventDefault();
+      }
+    });
+  }
+
+  initDropListeners() {
+    const diagramDiv = document.getElementById('myDiagramDiv');
+    if (diagramDiv) {
+      diagramDiv.addEventListener('dragover', (event) =>
+        event.preventDefault()
+      );
+
+      diagramDiv.addEventListener('drop', (event) => {
+        event.preventDefault();
+        if (!this.diagram || !this.draggedItem) return;
+
+        const point = this.diagram.transformDocToView(
+          new go.Point(event.clientX, event.clientY)
+        );
+
+        // Tạo node mới với tọa độ xác định
+        this.diagram.model.addNodeData({
+          key: this.diagram.model.nodeDataArray.length + 1,
+          text: this.draggedItem,
+          loc: `${point.x} ${point.y}`, // Sử dụng tọa độ trong mô hình
+          color: 'lightblue',
+          figure: 'RoundedRectangle',
+        });
+      });
+    }
+  }
+
+  onItemDragStart(item: string) {
+    this.draggedItem = item;
+  }
 }

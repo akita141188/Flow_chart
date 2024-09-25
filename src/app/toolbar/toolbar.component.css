@@ -1,0 +1,24 @@
+.toolbar {
+  display: flex;
+  gap: 10px; /* Khoảng cách giữa các nút */
+}
+
+.toolbar-button {
+  border-radius: 8px; /* Góc bo tròn */
+  background: linear-gradient(
+    to bottom,
+    orange,
+    red
+  ); /* Tạo hiệu ứng gradient giống như brush */
+  border: 1px solid darkblue; /* Đường viền giống như shape trong node */
+  color: white; /* Màu chữ */
+  font-size: 14px; /* Kích thước chữ */
+  padding: 10px 15px; /* Padding cho nút */
+  cursor: pointer; /* Hiển thị con trỏ khi hover */
+  transition: background 0.3s; /* Hiệu ứng chuyển tiếp */
+}
+
+/* Hiệu ứng hover */
+.toolbar-button:hover {
+  background: linear-gradient(to bottom, lightgreen, darkgreen);
+}
